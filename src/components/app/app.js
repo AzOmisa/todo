@@ -52,7 +52,7 @@ export default class App extends React.Component {
     });
     return arr;
   };
-  updateEditedTask = (id, newDescription) => {
+  onEditTask = (id, newDescription) => {
     let newArr = this.state.tasksData.map((item) => {
       if (item.id === id) {
         item.description = newDescription;
@@ -152,7 +152,7 @@ export default class App extends React.Component {
           editTask={this.editTask}
           destroyTask={this.destroyTask}
           completeTask={this.completeTask}
-          updateEditedTask={this.updateEditedTask}
+          onEditTask={this.onEditTask}
         />
         <Footer
           selectedFilter={selectedFilter}

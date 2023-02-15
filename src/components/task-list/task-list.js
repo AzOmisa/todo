@@ -1,18 +1,18 @@
 import React from 'react';
+import classNames from 'classnames';
 
 import Task from '../task';
 import NewTaskForm from '../new-task-form';
 
-export default function TaskList({ tasksData, destroyTask, editTask, updateEditedTask, completeTask }) {
+export default function TaskList({ tasksData, destroyTask, editTask, onEditTask, completeTask }) {
   let elements = tasksData.map((item) => {
     const { id, description, leftTime, completed, hidden, editing } = item;
+    let li = classNames({
+      completed: completed,
+      editing: editing,
+    });
     if (hidden) return '';
-    let li = undefined;
-    if (completed) {
-      li = 'completed';
-    }
-    if (editing) {
-      li = 'editing';
+    if (li === 'editing') {
       return (
         <li key={id} className={li}>
           <Task
@@ -23,7 +23,7 @@ export default function TaskList({ tasksData, destroyTask, editTask, updateEdite
             completed={completed}
             leftTime={leftTime}
           />
-          <NewTaskForm handler={updateEditedTask} id={id} value={description} />
+          <NewTaskForm handler={onEditTask} id={id} value={description} />
         </li>
       );
     }
