@@ -16,18 +16,22 @@ export default class App extends React.Component {
   };
   local = new Storage(localStorage);
   componentDidMount() {
-    if (this.local.getItem('tasksData')) {
+    if (this.local.getItem('data')) {
+      const { taskData, selectedFilter } = JSON.parse(this.local.getItem('data'));
       this.setState(() => {
         return {
-          tasksData: JSON.parse(this.local.getItem('tasksData')),
-          selectedFilter: JSON.parse(this.local.getItem('selectedFilter')),
+          tasksData: taskData,
+          selectedFilter: selectedFilter,
         };
       });
     }
   }
   componentDidUpdate() {
-    this.local.setItem('tasksData', JSON.stringify(this.state.tasksData));
-    this.local.setItem('selectedFilter', JSON.stringify(this.state.selectedFilter));
+    const data = {
+      taskData: this.state.tasksData,
+      selectedFilter: this.state.selectedFilter,
+    };
+    this.local.setItem('data', JSON.stringify(data));
   }
   createNewTask = (description) => {
     const now = new Date().setTime(Date.now());
