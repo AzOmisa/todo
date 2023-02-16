@@ -7,14 +7,14 @@ import NewTaskForm from '../new-task-form';
 export default function TaskList({ tasksData, destroyTask, editTask, onEditTask, completeTask }) {
   let elements = tasksData.map((item) => {
     const { id, description, leftTime, completed, hidden, editing } = item;
-    let li = classNames({
-      completed: completed,
+    let className = classNames({
+      completed: completed && !editing,
       editing: editing,
     });
     if (hidden) return '';
-    if (li === 'editing') {
+    if (className === 'editing') {
       return (
-        <li key={id} className={li}>
+        <li key={id} className={className}>
           <Task
             description={description}
             destroyTask={() => destroyTask(id)}
@@ -28,7 +28,7 @@ export default function TaskList({ tasksData, destroyTask, editTask, onEditTask,
       );
     }
     return (
-      <li key={id} className={li}>
+      <li key={id} className={className}>
         <Task
           description={description}
           leftTime={leftTime}

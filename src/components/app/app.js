@@ -75,7 +75,7 @@ export default class App extends React.Component {
   editTask = (id) => {
     let newTasksData = this.state.tasksData.map((item) => {
       if (item.id === id) {
-        item.editing = !item.editing;
+        item.editing = true;
       }
       return item;
     });
