@@ -1,34 +1,38 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 } from 'uuid';
 
 import NewTaskForm from '../new-task-form';
 import TaskList from '../task-list';
 import Footer from '../footer';
+import filtersNames from '../constants';
+
+import Storage from './storage';
 
 export default class App extends React.Component {
   state = {
     tasksData: [],
-    selectedFilter: 'All',
+    selectedFilter: filtersNames.all,
   };
+  local = new Storage(localStorage);
   componentDidMount() {
-    if (localStorage.getItem('tasksData')) {
+    if (this.local.getItem('tasksData')) {
       this.setState(() => {
         return {
-          tasksData: JSON.parse(localStorage.getItem('tasksData')),
-          selectedFilter: JSON.parse(localStorage.getItem('selectedFilter')),
+          tasksData: JSON.parse(this.local.getItem('tasksData')),
+          selectedFilter: JSON.parse(this.local.getItem('selectedFilter')),
         };
       });
     }
   }
   componentDidUpdate() {
-    localStorage.setItem('tasksData', JSON.stringify(this.state.tasksData));
-    localStorage.setItem('selectedFilter', JSON.stringify(this.state.selectedFilter));
+    this.local.setItem('tasksData', JSON.stringify(this.state.tasksData));
+    this.local.setItem('selectedFilter', JSON.stringify(this.state.selectedFilter));
   }
-  createNewTask = (id, description) => {
+  createNewTask = (description) => {
     const now = new Date().setTime(Date.now());
     const newEl = {
-      id: uuidv4(),
+      id: v4(),
       description: description,
       created: now,
       leftTime: 'created less than 5 seconds ago',
@@ -38,7 +42,7 @@ export default class App extends React.Component {
     };
     const newArr = this.updateCreatedTime([newEl, ...this.state.tasksData.slice()]);
     this.setState(() => {
-      return { tasksData: newArr };
+      return { tasksData: this.filteredView(this.state.selectedFilter, newArr) };
     });
   };
   updateCreatedTime = (arr) => {
@@ -53,7 +57,7 @@ export default class App extends React.Component {
     return arr;
   };
   onEditTask = (id, newDescription) => {
-    let newArr = this.state.tasksData.map((item) => {
+    let newTasksData = this.state.tasksData.map((item) => {
       if (item.id === id) {
         item.description = newDescription;
         item.editing = false;
@@ -61,29 +65,28 @@ export default class App extends React.Component {
       return item;
     });
     this.setState(() => {
-      return { tasksData: this.updateCreatedTime(newArr) };
+      return { tasksData: this.updateCreatedTime(newTasksData) };
     });
   };
   editTask = (id) => {
-    let newArr = this.state.tasksData.map((item) => {
+    let newTasksData = this.state.tasksData.map((item) => {
       if (item.id === id) {
         item.editing = !item.editing;
       }
       return item;
     });
     this.setState(() => {
-      return { tasksData: this.updateCreatedTime(newArr) };
+      return { tasksData: this.updateCreatedTime(newTasksData) };
     });
   };
   destroyTask = (id) => {
-    let newArr = this.state.tasksData.filter((item) => item.id !== id);
-    newArr = this.updateCreatedTime(newArr);
+    let newTasksData = this.state.tasksData.filter((item) => item.id !== id);
     this.setState(() => {
-      return { tasksData: newArr };
+      return { tasksData: this.updateCreatedTime(newTasksData) };
     });
   };
   completeTask = (id) => {
-    let newArr = this.state.tasksData.map((item) => {
+    let newTasksData = this.state.tasksData.map((item) => {
       if (item.id === id) {
         item.completed = !item.completed;
       }
@@ -91,29 +94,30 @@ export default class App extends React.Component {
     });
     const filter = this.state.selectedFilter;
     this.setState(() => {
-      return { tasksData: this.updateCreatedTime(this.filteredView(filter, newArr)) };
+      return { tasksData: this.updateCreatedTime(this.filteredView(filter, newTasksData)) };
     });
   };
   clearCompleted = () => {
-    let newArr = this.state.tasksData.filter((item) => !item.completed);
+    let newTasksData = this.state.tasksData.filter((item) => !item.completed);
     this.setState(() => {
-      return { tasksData: this.updateCreatedTime(newArr) };
+      return { tasksData: this.updateCreatedTime(newTasksData) };
     });
   };
   filteredView = (name, arr) => {
     let newTasksData;
+    const { all, active, completed } = filtersNames;
     switch (name) {
-      case 'All':
+      case all:
         newTasksData = [...arr];
         newTasksData.forEach((item) => (item.hidden = false));
         break;
-      case 'Active':
+      case active:
         newTasksData = arr.map((item) => {
           item.completed ? (item.hidden = true) : (item.hidden = false);
           return item;
         });
         break;
-      case 'Completed':
+      case completed:
         newTasksData = arr.map((item) => {
           item.completed ? (item.hidden = false) : (item.hidden = true);
           return item;

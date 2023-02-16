@@ -3,22 +3,22 @@ export default class NewTaskForm extends React.Component {
   state = {
     item: this.props.value,
   };
-  createNewTodo = (e) => {
+  createNewTask = (e) => {
     this.setState({
       item: e.target.value,
     });
   };
-  submitItem = (e) => {
+  submitTask = (e) => {
     if (e.key === 'Enter' && e.target.value !== '') {
-      const { id, value } = this.props;
+      const { id, handler } = this.props;
       const { item } = this.state;
-      if (!value) {
-        this.props.handler(item);
-        this.setState({
+      if (!id) {
+        handler(item);
+        return this.setState({
           item: '',
         });
       }
-      this.props.handler(id, item);
+      handler(id, item);
     }
   };
   render() {
@@ -27,9 +27,9 @@ export default class NewTaskForm extends React.Component {
         type="text"
         className={this.props.className}
         placeholder={this.props.placeholder}
-        onChange={this.createNewTodo}
+        onChange={this.createNewTask}
         autoFocus
-        onKeyUp={this.submitItem}
+        onKeyUp={this.submitTask}
         value={this.state.item}
       />
     );
