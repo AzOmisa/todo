@@ -2,31 +2,17 @@ import React from 'react';
 import classNames from 'classnames';
 
 import Task from '../task';
-import NewTaskForm from '../new-task-form';
+import Input from '../input';
 
-export default function TaskList({ tasksData, destroyTask, editTask, onEditTask, completeTask }) {
+export default function TaskList({ tasksData, destroyTask, editTask, onEditTask, completeTask, onPlay, onPause }) {
   let elements = tasksData.map((item) => {
-    const { id, description, leftTime, completed, hidden, editing } = item;
+    const { id, description, leftTime, completed, hidden, editing, min, sec } = item;
     let className = classNames({
       completed: completed && !editing,
       editing: editing,
     });
     if (hidden) return '';
-    if (className === 'editing') {
-      return (
-        <li key={id} className={className}>
-          <Task
-            description={description}
-            destroyTask={() => destroyTask(id)}
-            completeTask={() => completeTask(id)}
-            editTask={() => editTask(id)}
-            completed={completed}
-            leftTime={leftTime}
-          />
-          <NewTaskForm handler={onEditTask} id={id} value={description} />
-        </li>
-      );
-    }
+    let input = editing ? <Input type="text" handler={onEditTask} id={id} value={description} /> : null;
     return (
       <li key={id} className={className}>
         <Task
@@ -36,7 +22,12 @@ export default function TaskList({ tasksData, destroyTask, editTask, onEditTask,
           completeTask={() => completeTask(id)}
           editTask={() => editTask(id)}
           completed={completed}
+          min={min}
+          sec={sec}
+          onPlay={() => onPlay(id)}
+          onPause={() => onPause(id)}
         />
+        {input}
       </li>
     );
   });

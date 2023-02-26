@@ -2,7 +2,7 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { v4 } from 'uuid';
 
-import NewTaskForm from '../new-task-form';
+import Form from '../form';
 import TaskList from '../task-list';
 import Footer from '../footer';
 import filtersNames from '../constants';
@@ -16,11 +16,18 @@ export default class App extends React.Component {
   };
   local = new Storage(localStorage);
   componentDidMount() {
+    this.timerIds = {};
     if (this.local.getItem('data')) {
-      const { taskData, selectedFilter } = JSON.parse(this.local.getItem('data'));
+      let { taskData, selectedFilter } = JSON.parse(this.local.getItem('data'));
+      const newTasksData = taskData.map((item) => {
+        if (item.timerIsRun) {
+          item.timerIsRun = false;
+        }
+        return item;
+      });
       this.setState(() => {
         return {
-          tasksData: taskData,
+          tasksData: this.updateCreatedTime(newTasksData),
           selectedFilter: selectedFilter,
         };
       });
@@ -33,8 +40,21 @@ export default class App extends React.Component {
     };
     this.local.setItem('data', JSON.stringify(data));
   }
-  createNewTask = (description) => {
+  componentWillUnmount() {
+    for (let key in this.timerIds) {
+      clearInterval(this.timerIds[key]);
+    }
+    delete this.timerIds;
+  }
+  onMountTimerRunner = (arr) => {
+    const newArr = arr.reduce((acc, item) => {
+      return this.updateTimer(item.id, acc);
+    }, arr);
+    return newArr;
+  };
+  createNewTask = (description, min, sec) => {
     const now = new Date().setTime(Date.now());
+    const [formatMin, formatSec] = this.format(min, sec);
     const newEl = {
       id: v4(),
       description: description,
@@ -43,11 +63,20 @@ export default class App extends React.Component {
       completed: false,
       hidden: false,
       editing: false,
+      min: formatMin,
+      sec: formatSec,
+      timerIsRun: false,
     };
     const newArr = this.updateCreatedTime([newEl, ...this.state.tasksData.slice()]);
     this.setState(() => {
       return { tasksData: this.filteredView(this.state.selectedFilter, newArr) };
     });
+  };
+  format = (min, sec) => {
+    const secInMin = sec ? Math.trunc(sec / 60) : 0;
+    const formatMin = min ? Number(min) + secInMin : secInMin;
+    const formatSec = sec ? sec % 60 : 0;
+    return [formatMin, formatSec];
   };
   updateCreatedTime = (arr) => {
     arr.forEach((item) => {
@@ -85,6 +114,11 @@ export default class App extends React.Component {
   };
   destroyTask = (id) => {
     let newTasksData = this.state.tasksData.filter((item) => item.id !== id);
+    this.state.tasksData.forEach((item) => {
+      if (item.id === id && item.timerIsRun) {
+        this.clearTimerInterval(item.id);
+      }
+    });
     this.setState(() => {
       return { tasksData: this.updateCreatedTime(newTasksData) };
     });
@@ -102,7 +136,13 @@ export default class App extends React.Component {
     });
   };
   clearCompleted = () => {
-    let newTasksData = this.state.tasksData.filter((item) => !item.completed);
+    const newTasksData = this.state.tasksData.filter((item) => !item.completed);
+    let completedTasks = this.state.tasksData.filter((item) => item.completed);
+    completedTasks.forEach((item) => {
+      if (item.timerIsRun) {
+        this.clearTimerInterval(item.id);
+      }
+    });
     this.setState(() => {
       return { tasksData: this.updateCreatedTime(newTasksData) };
     });
@@ -141,6 +181,69 @@ export default class App extends React.Component {
       };
     });
   };
+  updateTimer = (id) => {
+    let item = this.state.tasksData.find((item) => item.id === id);
+    let newTasksData;
+    if (!item.min && !item.sec) {
+      this.onPause(item.id);
+      return false;
+    }
+    if (item.sec < 1) {
+      newTasksData = this.state.tasksData.map((item) => {
+        if (item.id === id) {
+          item.min -= 1;
+          item.sec = 59;
+          item.timerIsRun = true;
+        }
+        return item;
+      });
+    } else {
+      newTasksData = this.state.tasksData.map((item) => {
+        if (item.id === id) {
+          item.sec -= 1;
+          item.timerIsRun = true;
+        }
+        return item;
+      });
+    }
+    return newTasksData;
+  };
+  onPlay = (id) => {
+    let item = this.state.tasksData.find((item) => item.id === id);
+    if (item.timerIsRun) return;
+    this.setTimerInterval(id);
+  };
+  setTimerInterval = (id) => {
+    if (!this.updateTimer(id)) return;
+    this.timerIds[id] = setInterval(() => {
+      const newTasksData = this.updateTimer(id);
+      this.setState(() => {
+        return {
+          tasksData: newTasksData,
+        };
+      });
+    }, 1000);
+  };
+  clearTimerInterval = (id) => {
+    clearInterval(this.timerIds[id]);
+    delete this.timerIds[id];
+  };
+  onPause = (id) => {
+    let item = this.state.tasksData.find((item) => item.id === id);
+    if (!item.timerIsRun) return;
+    this.clearTimerInterval(item.id);
+    const newTasksData = this.state.tasksData.map((item) => {
+      if (item.id === id) {
+        item.timerIsRun = false;
+      }
+      return item;
+    });
+    this.setState(() => {
+      return {
+        tasksData: newTasksData,
+      };
+    });
+  };
   render() {
     const leftItems = this.state.tasksData.filter((item) => !item.completed).length;
     const { tasksData, selectedFilter } = this.state;
@@ -148,12 +251,7 @@ export default class App extends React.Component {
       <section className="todoapp">
         <header className="header">
           <h1>todos</h1>
-          <NewTaskForm
-            className="new-todo"
-            placeholder="What needs to be done?"
-            id={this.number}
-            handler={this.createNewTask}
-          />
+          <Form handler={this.createNewTask} />
         </header>
         <TaskList
           tasksData={tasksData}
@@ -161,6 +259,8 @@ export default class App extends React.Component {
           destroyTask={this.destroyTask}
           completeTask={this.completeTask}
           onEditTask={this.onEditTask}
+          onPlay={this.onPlay}
+          onPause={this.onPause}
         />
         <Footer
           selectedFilter={selectedFilter}
