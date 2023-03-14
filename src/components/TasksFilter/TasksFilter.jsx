@@ -1,7 +1,8 @@
 import React from 'react';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-import filtersNames from '../constants';
+import { filtersNames } from '../../services/constants';
 export default function TasksFilter({ selectedFilter, onFilterClick }) {
   let filters = [];
   for (let key in filtersNames) {
@@ -19,3 +20,7 @@ export default function TasksFilter({ selectedFilter, onFilterClick }) {
   }
   return <ul className="filters">{filters}</ul>;
 }
+TasksFilter.propTypes = {
+  selectedFilter: PropTypes.string.isRequired,
+  onFilterClick: PropTypes.func.isRequired,
+};
